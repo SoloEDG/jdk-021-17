@@ -4,6 +4,13 @@ import { recipes } from "../../../shared/catalog";
 import { servingQuality, servicePair } from "../lib/freshness";
 defineProps<{ game: Game }>();
 defineEmits<{ command: [cmd: Command] }>();
+function lineTag(g: Game, orderId: number | null, lineId: number | null) {
+  if (orderId == null || lineId == null) return "散份";
+  const o = g.orders.find((x) => x.id === orderId);
+  const l = o?.lines.find((x) => x.id === lineId);
+  if (!o || !l) return "散份";
+  return `#${String(o.id).padStart(3, "0")} · ${recipes[l.recipe].name}${l.credit ? "抵价" : ""}`;
+}
 </script>
 <template>
   <section class="panel service-panel">
@@ -18,11 +25,12 @@ defineEmits<{ command: [cmd: Command] }>();
       >
         <span class="dish-icon">{{ recipes[d.recipe].icon }}</span>
         <div>
-          <b>{{ recipes[d.recipe].name }}</b
-          ><small
-            >品质 {{ servingQuality(game, d) }} ·
-            {{ d.stage === "plated" ? "已装盘" : "待装盘" }}</small
-          >
+          <b>{{ recipes[d.recipe].name }}</b>
+          <small>
+            品质 {{ servingQuality(game, d) }} ·
+            {{ d.stage === "plated" ? "已装盘" : "待装盘" }} ·
+            {{ lineTag(game, d.orderId, d.lineId) }}
+          </small>
         </div>
         <button
           class="tiny soft"
@@ -44,15 +52,27 @@ defineEmits<{ command: [cmd: Command] }>();
       </article>
       <div v-if="!game.dishes.length" class="empty plate-empty">
         <div>◌</div>
-        这里等待你的第一道美味<small>起锅 → 装盘 → 选择订单 → 上菜</small>
+        这里等待你的第一道美味<small>起锅 → 装盘 → 选择订单 → 逐道上菜</small>
       </div>
     </div>
     <div class="delivery-target">
       上菜目标：<b>{{ servicePair(game).order?.guest || "尚未选择订单" }}</b>
+      <small v-if="servicePair(game).order">
+        · 待上
+        {{
+          servicePair(game).order!.lines.filter(
+            (l) =>
+              ["pending", "prepping", "cooking", "ready"].includes(l.state),
+          ).length
+        }}
+        道
+      </small>
     </div>
     <button class="serve-button" @click="$emit('command', { type: 'serve' })">
       上菜 <span>↗</span>
     </button>
-    <p class="muted">错配扣10秒耐心 · 起锅15秒后开始失温</p>
+    <p class="muted">
+      逐道交付逐道收款 · 换菜前的成品无法按新要求交付 · 起锅15秒后开始失温
+    </p>
   </section>
 </template>

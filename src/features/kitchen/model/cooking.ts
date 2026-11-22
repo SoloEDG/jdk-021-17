@@ -1,6 +1,7 @@
 import type { Game } from "../../../shared/types";
 import { recipes } from "../../../shared/catalog";
 import { quality } from "../lib/heat";
+import { syncLineStates } from "../../../shared/wip";
 export function cook(g: Game, portion: number, stove: number) {
   const p = g.portions.find((p) => p.id === portion),
     s = g.stoves.find((s) => s.id === stove);
@@ -12,6 +13,7 @@ export function cook(g: Game, portion: number, stove: number) {
   s.portion = p;
   s.started = g.time;
   g.portions = g.portions.filter((x) => x.id !== portion);
+  syncLineStates(g);
   g.notice = "已经下锅，请在最佳火候起锅";
 }
 export function lift(g: Game, id: number) {
@@ -29,7 +31,10 @@ export function lift(g: Game, id: number) {
     quality: q,
     cookedAt: g.time,
     stage: "counter",
+    orderId: p.orderId,
+    lineId: p.lineId,
   });
   s.portion = null;
+  syncLineStates(g);
   g.notice = `起锅完成，品质 ${q}，前往装盘`;
 }

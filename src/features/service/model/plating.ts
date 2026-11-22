@@ -1,4 +1,5 @@
 import type { Game } from "../../../shared/types";
+import { syncLineStates } from "../../../shared/wip";
 export function plate(g: Game, id: number) {
   const d = g.dishes.find((d) => d.id === id);
   if (!d || d.stage !== "counter") return;
@@ -7,8 +8,9 @@ export function plate(g: Game, id: number) {
   g.notice = "装盘完成，请选中订单后上菜";
 }
 export function discard(g: Game, id: number) {
-  if (!g.dishes.some((d) => d.id === id)) return;
-  g.dishes = g.dishes.filter((d) => d.id !== id);
+  const d = g.dishes.find((d) => d.id === id);
+  if (!d) return;
+  g.dishes = g.dishes.filter((x) => x.id !== id);
   if (g.selectedDish === id) g.selectedDish = null;
   g.entries.push({
     id: g.nextId++,
@@ -17,5 +19,7 @@ export function discard(g: Game, id: number) {
     amount: -3,
     kind: "waste",
   });
-  g.notice = "已丢弃，浪费成本 ¥3";
+  // 若属于某道菜行，丢弃后该菜行回到待制作，份额不会凭空消失
+  syncLineStates(g);
+  g.notice = "已丢弃，浪费成本 ¥3；对应菜行需重新制作";
 }

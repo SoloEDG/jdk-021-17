@@ -4,6 +4,14 @@ import { recipes } from "../../../shared/catalog";
 import { heatLabel } from "../lib/heat";
 defineProps<{ game: Game; stove: Stove }>();
 defineEmits<{ command: [cmd: Command] }>();
+function portionTag(g: Game, lineId: number | null) {
+  if (lineId == null) return "散份";
+  for (const o of g.orders) {
+    const l = o.lines.find((x) => x.id === lineId);
+    if (l) return `#${String(o.id).padStart(3, "0")}`;
+  }
+  return "散份";
+}
 </script>
 <template>
   <article class="stove" :class="{ cooking: stove.portion }">
@@ -39,6 +47,9 @@ defineEmits<{ command: [cmd: Command] }>();
         ></i
         ><span></span>
       </div>
+      <small class="line-tag"
+        >归属订单 {{ portionTag(game, stove.portion.lineId) }}</small
+      >
       <button
         class="warm"
         @click="$emit('command', { type: 'lift', id: stove.id })"
@@ -58,7 +69,9 @@ defineEmits<{ command: [cmd: Command] }>();
             $emit('command', { type: 'cook', portion: p.id, stove: stove.id })
           "
         >
-          {{ recipes[p.recipe].icon }} #{{ p.id }} 下锅</button
+          {{ recipes[p.recipe].icon }} #{{ p.id }}
+          {{ p.lineId == null ? "散份" : "· 单" + portionTag(game, p.lineId) }}
+          下锅</button
         ><small
           v-if="
             !game.portions.some((p) => recipes[p.recipe].station === stove.kind)

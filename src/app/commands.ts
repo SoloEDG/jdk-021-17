@@ -1,5 +1,5 @@
 import type { Game, Command } from "../shared/types";
-import { accept, expire } from "../features/orders";
+import { accept, expire, cancelRemaining, confirmSwap } from "../features/orders";
 import { prepare, restock } from "../features/pantry";
 import { cook, lift } from "../features/kitchen";
 import { plate, discard, deliver } from "../features/service";
@@ -36,11 +36,17 @@ export function dispatch(g: Game, c: Command) {
         g.selectedDish = c.id;
       break;
     case "serve":
-      deliver(g);
+      deliver(g, c.lineId);
       expire(g);
       break;
     case "discard":
       discard(g, c.id);
+      break;
+    case "confirm-swap":
+      confirmSwap(g, c.id, c.lineId, c.recipe, c.mode);
+      break;
+    case "cancel-lines":
+      cancelRemaining(g, c.id);
       break;
   }
 }

@@ -1,9 +1,10 @@
 import { reactive, onUnmounted } from "vue";
 import { createGame } from "../shared/initial";
+import { normalizeGame } from "../shared/orderlines";
 import { expire, arrive } from "../features/orders";
 import { closeShift, saveBest, readBest } from "../features/ledger";
 export function useSession() {
-  const game = reactive(createGame(readBest()));
+  const game = reactive(normalizeGame(createGame(readBest())));
   let last = performance.now(),
     carry = 0;
   const timer = setInterval(() => {
@@ -37,7 +38,12 @@ export function useSession() {
       : "已暂停，所有厨房计时冻结。";
   }
   function restart() {
-    Object.assign(game, createGame(game.best));
+    const fresh = normalizeGame(createGame(game.best));
+    // 逐字段替换，保证嵌套的 lines/portions 等响应式结构一并刷新
+    for (const key of Object.keys(fresh) as (keyof typeof fresh)[]) {
+      // @ts-expect-error 泛型键赋值在严格模式下无法联合校验
+      game[key] = fresh[key];
+    }
     carry = 0;
     last = performance.now();
   }
